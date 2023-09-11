@@ -2,7 +2,6 @@ import shutil
 import uuid
 from normalize import normalize
 from pathlib import Path
-from threading import Semaphore, Thread
 from time import time
 
 CATEGORIES = {"Pictures": ['.JPEG', '.PNG', '.JPG', '.SVG'],
@@ -17,30 +16,27 @@ file_cats = set()
 other_cats = set()
 
 
-def unpack_archives(condition: Semaphore, file: Path, root_dir: Path, category: str) -> None:
-    with condition:
-        path_to_unpack = root_dir.joinpath(
-            f"{category}\\{normalize(file.stem)}")
-        shutil.unpack_archive(file, path_to_unpack)
-        print(f'File {file} unpacked to directory {path_to_unpack} and deleted.')
-        resulted_by_categories[category] = resulted_by_categories.get(
-            category, []) + [file.name]
-        file.unlink()
+def unpack_archives(file: Path, root_dir: Path, category: str) -> None:
+    path_to_unpack = root_dir.joinpath(f"{category}\\{normalize(file.stem)}")
+    shutil.unpack_archive(file, path_to_unpack)
+    print(f'File {file} unpacked to directory {path_to_unpack} and deleted.')
+    resulted_by_categories[category] = resulted_by_categories.get(
+        category, []) + [file.name]
+    file.unlink()
 
 
-def move_file(condition: Semaphore, file: Path, root_dir: Path, category: str) -> None:
-    with condition:
-        target_dir = root_dir.joinpath(category)
-        if not target_dir.exists():
-            target_dir.mkdir()
-        new_name = target_dir.joinpath(f"{normalize(file.stem)}{file.suffix}")
-        if new_name.exists():
-            new_name = new_name.with_name(
-                f"{new_name.stem}-{uuid.uuid4()}{file.suffix}")
-        file.rename(new_name)
-        print(f'File {new_name} moved in directory {target_dir}')
-        resulted_by_categories[category] = resulted_by_categories.get(
-            category, []) + [new_name.name]
+def move_file(file: Path, root_dir: Path, category: str) -> None:
+    target_dir = root_dir.joinpath(category)
+    if not target_dir.exists():
+        target_dir.mkdir()
+    new_name = target_dir.joinpath(f"{normalize(file.stem)}{file.suffix}")
+    if new_name.exists():
+        new_name = new_name.with_name(
+            f"{new_name.stem}-{uuid.uuid4()}{file.suffix}")
+    file.rename(new_name)
+    print(f'File {new_name} moved in directory {target_dir}')
+    resulted_by_categories[category] = resulted_by_categories.get(
+        category, []) + [new_name.name]
 
 
 def get_categories(file: Path) -> str:
@@ -59,17 +55,9 @@ def sort_folder(path: Path) -> None:
         if item.is_file():
             cat = get_categories(item)
             if cat == "Archives":
-                thread = Thread(target=unpack_archives,
-                                args=(pool, item, path, cat))
-                thread.start()
-                # unpacking must be in dedicated thread
-                # unpack_archives(item, path, cat)
+                unpack_archives(item, path, cat)
             else:
-                # moving file must be in other thread
-                # move_file(item, path, cat)
-                thread = Thread(target=move_file,
-                                args=(pool, item, path, cat))
-                thread.start()
+                move_file(item, path, cat)
 
 
 def delete_folders(path: Path) -> None:
@@ -121,7 +109,6 @@ def sort():
         return f'Folder path {path} do not exists.'
 
     t_start = time()
-
     sort_folder(path)
 
     delete_folders(path)
@@ -129,12 +116,11 @@ def sort():
     print_results()
 
     print('----------------------------------------------')
-    print(f'Time with 100 THREADS = {time() - t_start}')
+    print(f'Time without threads = {time() - t_start}')
     print('----------------------------------------------')
 
     return "Folders sorted"
 
 
 if __name__ == "__main__":
-    pool = Semaphore(100)
     sort()
