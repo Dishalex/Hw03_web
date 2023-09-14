@@ -129,12 +129,12 @@ def sort():
     print_results()
 
     print('----------------------------------------------')
-    print(f'Time with 100 THREADS = {time() - t_start}')
+    print(f'Time with 50 THREADS = {time() - t_start}')
     print('----------------------------------------------')
 
     return "Folders sorted"
 
 
 if __name__ == "__main__":
-    pool = Semaphore(100)
+    pool = Semaphore(50)
     sort()
