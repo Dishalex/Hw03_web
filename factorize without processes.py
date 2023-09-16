@@ -1,22 +1,22 @@
 from time import time
-from multiprocessing import cpu_count, Pool
-
 
 def func(n):
     return [1] + [i for i in range(2 + (n % 2), int(n/2 + 1)) if n % i == 0] + [n]
 
 
 def factorize(*args):
-    pool = Pool(processes=cpu_count())
-    res = pool.map(func, args)
-    pool.close()
+    res = []
+    for c in args:
+        res.append(func(c))
+
     return res
+
 
 
 if __name__ == "__main__":        
     t_start = time()
     a, b, c, d, *e  = factorize(128, 255, 99999, 10651060, 106510601, 106510602, 106510603)
-    print(f'Time with processes = {time() - t_start}')
+    print(f'Time without processes = {time() - t_start}')
     print('----------------------------------------------')
     
     print(a, b, c, d, *e, sep='\n')
