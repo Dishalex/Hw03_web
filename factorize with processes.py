@@ -9,7 +9,6 @@ def func(n):
 def factorize(*args):
     pool = Pool(processes=cpu_count())
     res = pool.map(func, args)
-    pool.close()
     return res
 
 
